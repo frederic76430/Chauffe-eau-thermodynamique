@@ -1,6 +1,7 @@
 /*
- * Atlantic Explorer V5 Card
- * custom:atlantic-explorer-card -> Atlantic Explorer V5 warmtepompboiler
+ * Atlantic Explorer V5 Card — version française avec éditeur visuel
+ * custom:atlantic-explorer-card -> chauffe-eau thermodynamique Atlantic Explorer V5
+ * D'après la carte de Yakfeet (licence MIT), traduction française et éditeur visuel par frederic76430.
  * Opmaak geïnspireerd op AMensink/warmtepomp-cards (MIT); code volledig zelf geschreven.
  *
  * Stroomrichting: de animatie loopt altijd in de tekenrichting van het pad.
@@ -12,7 +13,7 @@ const isNum = (v) => v !== null && v !== undefined && !isNaN(v);
 /* HTML-escaping: alles wat niet door de kaart zelf is gemaakt (entiteitsstatussen, labels, titel, afbeelding) gaat hier doorheen voordat het in innerHTML komt */
 const esc = (v) => String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const escDeep = (o) => (typeof o === 'string' ? esc(o) : Array.isArray(o) ? o.map(escDeep) : o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, escDeep(v)])) : o);
-let NUM_LOCALE = 'nl-NL'; /* wordt bij elke render gezet op de taal van Home Assistant (of `language`) */
+let NUM_LOCALE = 'fr-FR'; /* wordt bij elke render gezet op de taal van Home Assistant (of `language`) */
 const fmt = (v, d = 1, u = '') =>
   isNum(v) ? Number(v).toLocaleString(NUM_LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d }) + u : '–';
 const fmtP = (w) => (!isNum(w) ? '–' : Math.abs(w) >= 1000 ? fmt(w / 1000, 2, ' kW') : fmt(w, 0, ' W'));
@@ -44,6 +45,17 @@ const TR = {
     coil: 'Verdamper', suction: 'Zuiggas', discharge: 'Persgas', valve: 'Ventiel', untilDefrost: 'Tot ontdooien', mode: 'Modus', target: 'Doeltemperatuur',
     pillFault: 'Storing', pillDefrost: 'Ontdooien', pillBoth: 'Verwarmen · warmtepomp + element', pillHp: 'Verwarmen · warmtepomp', pillEl: 'Verwarmen · element', pillOk: 'Op temperatuur', pillIdle: 'Stand-by',
     goal: 'doel', top: 'boven', bottom: 'onder', airIn: 'Lucht in', airOut: 'Lucht uit', hotOut: 'Warm uit', coldIn: 'Koud in',
+  },
+  fr: {
+    title: 'Chauffe-eau thermodynamique', detailsTitle: 'Détails du chauffe-eau', hr: 'h',
+    modes: { heat: 'Chauffe', heating: 'Chauffe', cool: 'Refroidissement', cooling: 'Refroidissement', off: 'Arrêt', auto: 'Auto', manual: 'Manuel', eco: 'Eco+', 'eco+': 'Eco+', program: 'Programme', programmed: 'Programme', performance: 'Boost', electric: 'Électrique', standard: 'Standard' },
+    sg: { '0:0': ['Normal', 'Fonctionnement normal'], '1:0': ['Marche conseillée', 'Mise en marche recommandée'], '0:1': ['Arrêt', 'Ordre d’arrêt'], '1:1': ['Pleine puissance', 'Marche forcée à pleine puissance'] },
+    emsStatus: 'État EMS', pvBoost: 'Boost solaire', boostOn: 'Boost actif', boostOff: 'Boost arrêté', off: 'Arrêt', on: 'Marche',
+    compressor: 'Compresseur', fan: 'Ventilateur', element: 'Résistance', defrost: 'Dégivrage', online: 'En ligne', fault: 'Défaut', away: 'Absence', smartGrid: 'Smart Grid',
+    power: 'Puissance', today: 'Aujourd’hui', month: 'Ce mois', total: 'Consommation totale', cop: 'COP dernier cycle', available: 'Eau chaude dispo', remaining: 'Autonomie',
+    coil: 'Évaporateur', suction: 'Gaz aspiré', discharge: 'Gaz refoulé', valve: 'Détendeur', untilDefrost: 'Avant dégivrage', mode: 'Mode', target: 'Consigne',
+    pillFault: 'Défaut', pillDefrost: 'Dégivrage', pillBoth: 'Chauffe · pompe à chaleur + résistance', pillHp: 'Chauffe · pompe à chaleur', pillEl: 'Chauffe · résistance', pillOk: 'À température', pillIdle: 'En veille',
+    goal: 'consigne', top: 'haut', bottom: 'bas', airIn: 'Air entrant', airOut: 'Air sortant', hotOut: 'Eau chaude', coldIn: 'Eau froide',
   },
   en: {
     title: 'Heat pump water heater', detailsTitle: 'Water heater details', hr: 'h',
@@ -77,7 +89,7 @@ const morph = (a, b) => {
 
 class WPBase extends HTMLElement {
   setConfig(config) {
-    if (!config) throw new Error('Geen configuratie');
+    if (!config) throw new Error('Configuration manquante');
     this._c = { ...this.constructor.defaults(), ...config, entities: { ...(config.entities || {}) } };
     this._uid = 'u' + Math.random().toString(36).slice(2, 8);
     if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
@@ -230,7 +242,13 @@ const EXP = {
 
 class AtlanticExplorerCard extends WPBase {
   static defaults() { return { title: '', language: '', labels: {}, min_temp: 15, max_temp: 60, reverse_flow: false, image: '', element_power: 800, grid_mode: '', view: 'full', layout: 'auto' }; }
-  static getStubConfig() { return { type: 'custom:atlantic-explorer-card', entities: { tank_temp: 'sensor.explorer_midden_temp' } }; }
+  /* Carte de départ : prend le premier chauffe-eau (water_heater.*) trouvé */
+  static getStubConfig(hass) {
+    const wh = hass ? Object.keys(hass.states).find((e) => e.startsWith('water_heater.')) : null;
+    return { type: 'custom:atlantic-explorer-card', entities: wh ? { water_heater: wh } : {} };
+  }
+  /* Éditeur visuel : choix des capteurs dans des listes, sans écrire de YAML */
+  static getConfigElement() { return document.createElement('atlantic-explorer-card-editor'); }
 
   /* Ingang I1 van de Explorer hangt aan dezelfde schakelaar als PV Boost: `sg_1`, of anders `pv_boost`.
      Op de boiler zelf kies je of die ingang als Smart Grid (I1 + I2) of als PV Boost werkt;
@@ -261,12 +279,13 @@ class AtlanticExplorerCard extends WPBase {
   _render() {
     if (!this._hass || !this._c) return;
     const c = this._c, u = this._uid;
-    const lang = String(c.language || (this._hass.locale && this._hass.locale.language) || this._hass.language || 'en').toLowerCase().slice(0, 2);
+    const lang = String(c.language || (this._hass.locale && this._hass.locale.language) || this._hass.language || 'fr').toLowerCase().slice(0, 2);
     const trBase = TR[lang] || TR.en;
     const lab = c.labels && typeof c.labels === 'object' ? c.labels : {}; /* eigen teksten: `labels:` overschrijft elke sleutel uit de TR-tabel */
     const sub = (k) => ({ ...trBase[k], ...(lab[k] && typeof lab[k] === 'object' ? lab[k] : {}) });
     const t = escDeep({ ...trBase, ...lab, modes: sub('modes'), sg: sub('sg') });
-    NUM_LOCALE = c.language ? (lang === 'nl' ? 'nl-NL' : 'en-GB') : (this._hass.locale && this._hass.locale.language) || this._hass.language || (lang === 'nl' ? 'nl-NL' : 'en-GB');
+    const LOC = { nl: 'nl-NL', fr: 'fr-FR', en: 'en-GB' };
+    NUM_LOCALE = c.language ? (LOC[lang] || 'en-GB') : (this._hass.locale && this._hass.locale.language) || this._hass.language || (LOC[lang] || 'en-GB');
     const wh = this._st('water_heater');
     const top = this._n('tank_top') ?? this._n('tank_temp') ?? (wh ? parseFloat(wh.attributes.current_temperature) : null);
     const bottom = this._n('tank_bottom') ?? top;
@@ -467,8 +486,119 @@ class AtlanticExplorerDetailsCard extends AtlanticExplorerCard {
   getCardSize() { return 4; }
 }
 
-customElements.define('atlantic-explorer-card', AtlanticExplorerCard);
-customElements.define('atlantic-explorer-details-card', AtlanticExplorerDetailsCard);
+
+/* ---------- Éditeur visuel (choix des capteurs dans l'interface) ---------- */
+const ED_ENTITIES = [
+  ['Chauffe-eau', [
+    ['water_heater', 'Chauffe-eau (water_heater)', ['water_heater']],
+    ['tank_temp', 'Température de l’eau (milieu)', ['sensor']],
+    ['tank_top', 'Température haut du ballon', ['sensor']],
+    ['tank_bottom', 'Température bas du ballon', ['sensor']],
+    ['setpoint', 'Consigne', ['sensor', 'number', 'input_number']],
+    ['hot_out', 'Température eau chaude (sortie)', ['sensor']],
+    ['cold_in', 'Température eau froide (entrée)', ['sensor']],
+    ['mode', 'Mode', ['sensor', 'select', 'input_select']],
+    ['available_liters', 'Eau chaude disponible (L)', ['sensor']],
+    ['remaining_minutes', 'Autonomie (min)', ['sensor']],
+  ]],
+  ['Pompe à chaleur', [
+    ['air_in', 'Air entrant', ['sensor']],
+    ['air_out', 'Air sortant', ['sensor']],
+    ['coil', 'Évaporateur', ['sensor']],
+    ['exhaust', 'Gaz refoulé', ['sensor']],
+    ['return_gas', 'Gaz aspiré', ['sensor']],
+    ['eev', 'Position du détendeur', ['sensor']],
+    ['runtime_defrost', 'Temps avant dégivrage (min)', ['sensor']],
+    ['compressor', 'Compresseur en marche', ['binary_sensor', 'sensor', 'switch']],
+    ['heater', 'Résistance en marche', ['binary_sensor', 'sensor', 'switch']],
+  ]],
+  ['Énergie', [
+    ['power', 'Puissance (W)', ['sensor']],
+    ['energy_today', 'Consommation du jour (kWh)', ['sensor']],
+    ['energy_month', 'Consommation du mois (kWh)', ['sensor']],
+    ['energy_total', 'Consommation totale (kWh)', ['sensor']],
+    ['cop', 'COP dernier cycle', ['sensor']],
+  ]],
+  ['États', [
+    ['defrost', 'Dégivrage', ['binary_sensor', 'sensor']],
+    ['online', 'En ligne', ['binary_sensor', 'sensor']],
+    ['fault', 'Défaut', ['binary_sensor', 'sensor']],
+    ['away', 'Absence', ['binary_sensor', 'switch', 'input_boolean']],
+  ]],
+  ['Smart Grid / Boost solaire', [
+    ['pv_boost', 'Entrée I1 (Boost solaire ou Smart Grid)', ['switch', 'input_boolean']],
+    ['sg_1', 'Entrée I1 (si autre interrupteur)', ['switch', 'input_boolean']],
+    ['sg_2', 'Entrée I2 (Smart Grid)', ['switch', 'input_boolean']],
+  ]],
+];
+const ED_KEYS = ED_ENTITIES.flatMap(([, l]) => l.map(([k]) => k));
+const ED_OPTIONS = [
+  { name: 'title', selector: { text: {} } },
+  { name: 'language', selector: { select: { mode: 'dropdown', options: [
+    { value: '', label: 'Langue de Home Assistant' }, { value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }, { value: 'nl', label: 'Nederlands' }] } } },
+  { type: 'grid', name: '', schema: [
+    { name: 'min_temp', selector: { number: { min: 0, max: 90, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
+    { name: 'max_temp', selector: { number: { min: 10, max: 95, step: 1, mode: 'box', unit_of_measurement: '°C' } } },
+  ] },
+  { type: 'grid', name: '', schema: [
+    { name: 'layout', selector: { select: { mode: 'dropdown', options: [
+      { value: 'auto', label: 'Automatique' }, { value: 'horizontal', label: 'Côte à côte' }, { value: 'vertical', label: 'L’un sous l’autre' }] } } },
+    { name: 'view', selector: { select: { mode: 'dropdown', options: [
+      { value: 'full', label: 'Tout' }, { value: 'drawing', label: 'Dessin seul' }, { value: 'details', label: 'Détails seuls' }] } } },
+  ] },
+  { name: 'grid_mode', selector: { select: { mode: 'dropdown', options: [
+    { value: '', label: 'Automatique' }, { value: 'smart_grid', label: 'Smart Grid (I1 + I2)' }, { value: 'pv_boost', label: 'Boost solaire (I1)' }] } } },
+  { name: 'element_power', selector: { number: { min: 100, max: 5000, step: 50, mode: 'box', unit_of_measurement: 'W' } } },
+  { name: 'reverse_flow', selector: { boolean: {} } },
+  { name: 'image', selector: { text: {} } },
+];
+const ED_LABELS = {
+  title: 'Titre', language: 'Langue', min_temp: 'Température « froide »', max_temp: 'Température « chaude »',
+  layout: 'Disposition', view: 'Affichage', grid_mode: 'Entrée I1 du chauffe-eau', element_power: 'Puissance au-delà de laquelle la résistance est active',
+  reverse_flow: 'Inverser le sens des animations', image: 'Image personnalisée (/local/…), facultatif',
+  ...Object.fromEntries(ED_ENTITIES.flatMap(([, l]) => l.map(([k, lab]) => [k, lab]))),
+};
+
+class AtlanticExplorerCardEditor extends HTMLElement {
+  setConfig(config) { this._config = { ...config, entities: { ...(config.entities || {}) } }; this._render(); }
+  set hass(h) { this._hass = h; if (this._form) this._form.hass = h; else this._render(); }
+  _schema() {
+    return [
+      ...ED_OPTIONS,
+      ...ED_ENTITIES.map(([titre, liste], i) => ({
+        type: 'expandable', name: '', flatten: true, title: titre, expanded: i === 0,
+        schema: liste.map(([k, , dom]) => ({ name: k, selector: { entity: { domain: dom } } })),
+      })),
+    ];
+  }
+  _render() {
+    if (!this._hass || !this._config) return;
+    if (!this._form) {
+      this._form = document.createElement('ha-form');
+      this._form.computeLabel = (s) => ED_LABELS[s.name] || s.name;
+      this._form.addEventListener('value-changed', (e) => this._changed(e.detail.value));
+      this.appendChild(this._form);
+    }
+    this._form.hass = this._hass;
+    this._form.schema = this._schema();
+    this._form.data = { ...this._config, ...this._config.entities };
+  }
+  _changed(v) {
+    const entities = {}, cfg = {};
+    for (const [k, val] of Object.entries(v)) {
+      if (k === 'entities') continue;
+      if (ED_KEYS.includes(k)) { if (val) entities[k] = val; }
+      else if (val !== '' && val !== undefined && val !== null) cfg[k] = val;
+    }
+    this._config = { ...cfg, type: this._config.type, entities };
+    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
+  }
+}
+
+/* « if » : évite une erreur si la carte d'origine est aussi installée */
+if (!customElements.get('atlantic-explorer-card')) customElements.define('atlantic-explorer-card', AtlanticExplorerCard);
+if (!customElements.get('atlantic-explorer-details-card')) customElements.define('atlantic-explorer-details-card', AtlanticExplorerDetailsCard);
+if (!customElements.get('atlantic-explorer-card-editor')) customElements.define('atlantic-explorer-card-editor', AtlanticExplorerCardEditor);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 'atlantic-explorer-card', name: 'Atlantic Explorer V5', description: 'Geanimeerde kaart voor een Atlantic Explorer V5 warmtepompboiler', preview: false });
-window.customCards.push({ type: 'atlantic-explorer-details-card', name: 'Atlantic Explorer V5 (details)', description: 'Alleen de details van de Atlantic Explorer V5: status, Smart Grid / PV Boost en waarden', preview: false });
+window.customCards.push({ type: 'atlantic-explorer-card', name: 'Chauffe-eau thermodynamique (Atlantic Explorer)', description: 'Carte animée du chauffe-eau thermodynamique : ballon, pompe à chaleur, températures et consommation. Capteurs à choisir dans l’éditeur.', preview: true });
+window.customCards.push({ type: 'atlantic-explorer-details-card', name: 'Chauffe-eau thermodynamique (détails)', description: 'Seulement les détails : état, Smart Grid / Boost solaire et valeurs', preview: false });
