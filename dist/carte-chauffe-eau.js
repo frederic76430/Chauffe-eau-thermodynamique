@@ -1,6 +1,6 @@
 /*
  * Atlantic Explorer V5 Card — version française avec éditeur visuel
- * custom:atlantic-explorer-card -> chauffe-eau thermodynamique Atlantic Explorer V5
+ * custom:carte-chauffe-eau -> chauffe-eau thermodynamique Atlantic Explorer V5
  * D'après la carte de Yakfeet (licence MIT), traduction française et éditeur visuel par frederic76430.
  * Opmaak geïnspireerd op AMensink/warmtepomp-cards (MIT); code volledig zelf geschreven.
  *
@@ -245,10 +245,10 @@ class AtlanticExplorerCard extends WPBase {
   /* Carte de départ : prend le premier chauffe-eau (water_heater.*) trouvé */
   static getStubConfig(hass) {
     const wh = hass ? Object.keys(hass.states).find((e) => e.startsWith('water_heater.')) : null;
-    return { type: 'custom:atlantic-explorer-card', entities: wh ? { water_heater: wh } : {} };
+    return { type: 'custom:carte-chauffe-eau', entities: wh ? { water_heater: wh } : {} };
   }
   /* Éditeur visuel : choix des capteurs dans des listes, sans écrire de YAML */
-  static getConfigElement() { return document.createElement('atlantic-explorer-card-editor'); }
+  static getConfigElement() { return document.createElement('carte-chauffe-eau-editor'); }
 
   /* Ingang I1 van de Explorer hangt aan dezelfde schakelaar als PV Boost: `sg_1`, of anders `pv_boost`.
      Op de boiler zelf kies je of die ingang als Smart Grid (I1 + I2) of als PV Boost werkt;
@@ -596,9 +596,9 @@ class AtlanticExplorerCardEditor extends HTMLElement {
 }
 
 /* « if » : évite une erreur si la carte d'origine est aussi installée */
-if (!customElements.get('atlantic-explorer-card')) customElements.define('atlantic-explorer-card', AtlanticExplorerCard);
-if (!customElements.get('atlantic-explorer-details-card')) customElements.define('atlantic-explorer-details-card', AtlanticExplorerDetailsCard);
-if (!customElements.get('atlantic-explorer-card-editor')) customElements.define('atlantic-explorer-card-editor', AtlanticExplorerCardEditor);
+if (!customElements.get('carte-chauffe-eau')) customElements.define('carte-chauffe-eau', AtlanticExplorerCard);
+if (!customElements.get('carte-chauffe-eau-details')) customElements.define('carte-chauffe-eau-details', AtlanticExplorerDetailsCard);
+if (!customElements.get('carte-chauffe-eau-editor')) customElements.define('carte-chauffe-eau-editor', AtlanticExplorerCardEditor);
 window.customCards = window.customCards || [];
-window.customCards.push({ type: 'atlantic-explorer-card', name: 'Chauffe-eau thermodynamique (Atlantic Explorer)', description: 'Carte animée du chauffe-eau thermodynamique : ballon, pompe à chaleur, températures et consommation. Capteurs à choisir dans l’éditeur.', preview: true });
-window.customCards.push({ type: 'atlantic-explorer-details-card', name: 'Chauffe-eau thermodynamique (détails)', description: 'Seulement les détails : état, Smart Grid / Boost solaire et valeurs', preview: false });
+window.customCards.push({ type: 'carte-chauffe-eau', name: 'Carte chauffe-eau (FR)', description: 'Carte animée du chauffe-eau thermodynamique : ballon, pompe à chaleur, températures et consommation. Capteurs à choisir dans l’éditeur.', preview: true });
+window.customCards.push({ type: 'carte-chauffe-eau-details', name: 'Carte chauffe-eau (FR) · détails', description: 'Seulement les détails : état, Smart Grid / Boost solaire et valeurs', preview: false });

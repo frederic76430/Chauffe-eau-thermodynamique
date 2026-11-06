@@ -20,8 +20,8 @@ Carte animée pour un **chauffe-eau thermodynamique** (dessin d'un Atlantic Expl
 4. Rechargez la page du navigateur (Ctrl+F5).
 
 ### À la main
-1. Copiez `dist/atlantic-explorer-card.js` dans `/config/www/`.
-2. **Paramètres → Tableaux de bord → ⋮ → Ressources → Ajouter une ressource** : `/local/atlantic-explorer-card.js`, type **Module JavaScript**.
+1. Copiez `dist/carte-chauffe-eau.js` dans `/config/www/`.
+2. **Paramètres → Tableaux de bord → ⋮ → Ressources → Ajouter une ressource** : `/local/carte-chauffe-eau.js`, type **Module JavaScript**.
 3. Rechargez la page (Ctrl+F5).
 
 > N'installez pas en même temps la carte d'origine : elles utilisent le même nom.
@@ -30,14 +30,14 @@ Carte animée pour un **chauffe-eau thermodynamique** (dessin d'un Atlantic Expl
 
 ## Utilisation
 
-**Modifier le tableau de bord → Ajouter une carte → « Chauffe-eau thermodynamique (Atlantic Explorer) »**, puis choisissez vos capteurs dans l'éditeur. Ils sont rangés par thème : *Chauffe-eau*, *Pompe à chaleur*, *Énergie*, *États*, *Smart Grid / Boost solaire*.
+**Modifier le tableau de bord → Ajouter une carte → « Carte chauffe-eau (FR) »**, puis choisissez vos capteurs dans l'éditeur. Ils sont rangés par thème : *Chauffe-eau*, *Pompe à chaleur*, *Énergie*, *États*, *Smart Grid / Boost solaire*.
 
 Seul ce que vous renseignez est affiché : un capteur absent est simplement ignoré. Un clic sur une valeur ouvre la fiche de l'entité.
 
 Exemple en YAML :
 
 ```yaml
-type: custom:atlantic-explorer-card
+type: custom:carte-chauffe-eau
 title: Chauffe-eau
 entities:
   water_heater: water_heater.chauffe_eau     # température, consigne et mode si les capteurs séparés manquent
